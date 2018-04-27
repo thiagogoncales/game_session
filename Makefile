@@ -11,3 +11,8 @@ start:
 .PHONY: activate
 activate:
 	pipenv shell
+
+
+.PHONY: test
+test:
+	pytest
