@@ -5,10 +5,11 @@ name = "pypi"
 
 [packages]
 flask = "*"
-uuid = "*"
-pytest = "*"
+pynamodb = "*"
 
 [dev-packages]
+werkzeug = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.6"
