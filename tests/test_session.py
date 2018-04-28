@@ -1,11 +1,9 @@
 import json
 
-from tests.fixtures import client
-
-from session.constants import SESSION_OPEN
 from session.use_cases import (
     get_session,
 )
+from tests.fixtures import client
 
 
 def test_create_new_session(client):

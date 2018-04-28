@@ -4,23 +4,16 @@ from pynamodb.attributes import (
 )
 from pynamodb.models import Model
 
+from db.base import (
+    set_host,
+    BaseModel,
+)
 from config import (
-    DYNAMO_LOCAL_HOST,
     SESSION_TABLE_NAME,
 )
 
 
-def set_host(cls):
-    table_name = getattr(cls, 'table_name', '')
-    if table_name.startswith('MOCK_'):
-        setattr(cls, 'host', DYNAMO_LOCAL_HOST)
-    setattr(cls, 'read_capacity_units', 1)
-    setattr(cls, 'write_capacity_units', 1)
-    setattr(cls, 'max_retry_attempts', 1)
-    return cls
-
-
-class Session(Model):
+class Session(BaseModel):
     session_id = UnicodeAttribute(hash_key=True)
     is_active = BooleanAttribute()
 
@@ -33,4 +26,3 @@ class Session(Model):
     @set_host
     class Meta:
         table_name = SESSION_TABLE_NAME
-

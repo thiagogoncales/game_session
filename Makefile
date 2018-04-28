@@ -7,6 +7,7 @@ test: app-test
 
 .PHONY: app-test
 app-test:
+	make stop_local_dynamo
 	make start_local_dynamo
 	pipenv run pytest || true
 	make stop_local_dynamo
@@ -18,6 +19,10 @@ deploy:
 .PHONY: deploy-function
 deploy-function:
 	pipenv run sls deploy function -f app
+
+.PHONY: start
+start:
+	pipenv run sls wsgi serve
 
 # ---------------- Local Dynamo ----------------
 .PHONY: start_local_dynamo
