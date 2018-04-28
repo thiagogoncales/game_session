@@ -1,12 +1,12 @@
 from uuid import uuid4
 
-_MOCK_SESSION_DICT = {}
+from session.constants import SESSION_OPEN
 
-SESSION_OPEN = 'session-open'
+_MOCK_SESSION_DICT = {}
 
 
 def create_session():
-    session_id = uuid4()
+    session_id = str(uuid4())
     new_session = {
         'id': session_id,
         'state': SESSION_OPEN,
@@ -18,3 +18,6 @@ def create_session():
 
 def get_all_sessions():
     return list(_MOCK_SESSION_DICT.values())
+
+def get_session(session_id):
+    return _MOCK_SESSION_DICT[session_id]

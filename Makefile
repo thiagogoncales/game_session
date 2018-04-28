@@ -12,7 +12,9 @@ start:
 activate:
 	pipenv shell
 
-
 .PHONY: test
-test:
-	pytest
+test: app-tests
+
+.PHONY: app-tests
+app-tests:
+	make -C app test
