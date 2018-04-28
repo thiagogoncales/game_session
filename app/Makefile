@@ -1,7 +1,7 @@
 .PHONY: test
 test:
 	make start_local_dynamo
-	pipenv run pytest
+	pipenv run pytest || true
 	make stop_local_dynamo
 
 # ---------------- Local Dynamo ----------------
