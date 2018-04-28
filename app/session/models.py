@@ -4,8 +4,10 @@ from pynamodb.attributes import (
 )
 from pynamodb.models import Model
 
-
-DYNAMO_LOCAL_HOST = 'http://localhost:2345'
+from config import (
+    DYNAMO_LOCAL_HOST,
+    SESSION_TABLE_NAME,
+)
 
 
 def set_host(cls):
@@ -30,5 +32,5 @@ class Session(Model):
 
     @set_host
     class Meta:
-        table_name = 'MOCK_SESSION_TABLE_NAME'
+        table_name = SESSION_TABLE_NAME
 
