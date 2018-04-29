@@ -1,13 +1,13 @@
 import pytest
 
-import game_sessions
+import app
 from game.use_cases import create_game
 from session.use_cases import create_session
 
 
 @pytest.fixture
 def client():
-    return game_sessions.app.test_client()
+    return app.app.test_client()
 
 
 @pytest.fixture
