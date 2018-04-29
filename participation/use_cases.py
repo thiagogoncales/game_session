@@ -21,3 +21,10 @@ def get_participation(session_id, user_id):
         return Participation.get(session_id, user_id).as_dict()
     except Participation.DoesNotExist:
         return None
+
+
+def get_all_participation_for_session(session_id):
+    return [
+        participation.as_dict()
+        for participation in Participation.query(session_id)
+    ]

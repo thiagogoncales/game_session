@@ -21,8 +21,10 @@ from game.use_cases import (
 from participation.use_cases import add_participation
 from session.use_cases import (
     create_session,
+    get_game_session,
     get_session,
     SessionClosedException,
+    SessionOpenException,
     update_session,
 )
 
@@ -94,6 +96,18 @@ def participation(session_id):
             preferences=data['preferences'],
         ))
     except SessionClosedException:
+        abort(403)
+
+
+@app.route('/session/<session_id>/game_session/', methods=['GET'])
+def game_session(session_id):
+    get_session_or_404(session_id)
+
+    try:
+        return jsonify(get_game_session(
+            session_id=session_id,
+        ))
+    except SessionOpenException:
         abort(403)
 
 
