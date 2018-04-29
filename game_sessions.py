@@ -5,7 +5,11 @@ from flask import (
     request,
 )
 from voluptuous import (
+    All,
+    Invalid,
+    Length,
     MultipleInvalid,
+    Range,
     Required,
     Schema,
 )
@@ -32,9 +36,11 @@ def session():
 @app.route('/session/<session_id>/', methods=['GET', 'PUT'])
 def session_detail(session_id):
     get_session_or_404(session_id)
+
     schema = Schema({
         Required('is_active'): bool,
     })
+
     if request.method == 'PUT':
         data = validate(request.get_json(), schema)
         return jsonify(update_session(session_id, **data))
@@ -45,7 +51,13 @@ def session_detail(session_id):
 def game(session_id):
     get_session_or_404(session_id)
 
-    data = request.get_json()
+    schema = Schema(All({
+        Required('name'): All(str, Length(min=1)),
+        Required('min_players'): All(int, Range(min=1)),
+        Required('max_players'): All(int, Range(min=1)),
+    }, min_players_must_be_less_than_max_players))
+
+    data = validate(request.get_json(), schema)
 
     try:
         return jsonify(create_game(
@@ -56,6 +68,12 @@ def game(session_id):
         ))
     except SessionClosedException:
         abort(403)
+
+
+def min_players_must_be_less_than_max_players(data):
+    if data['min_players'] >= data['max_players']:
+        raise Invalid('min_players must be less than max_players')
+    return data
 
 
 def get_session_or_404(session_id):
