@@ -6,6 +6,7 @@ from participation.use_cases import get_participation
 from tests.fixtures import (
     active_session,
     client,
+    inactive_session,
 )
 
 
@@ -67,6 +68,24 @@ def test_create_participation_with_empty_user_id(client, active_session):
         active_session['session_id'],
         data=participation,
         expected_response=400,
+    )
+
+
+def test_create_participation_non_existing_session(client):
+    response = post_participation(
+        client,
+        'I DO NOT EXIST',
+        data=MOCK_PARTICIPATION,
+        expected_response=404,
+    )
+
+
+def test_create_participation_for_inactie_session(client, inactive_session):
+    response = post_participation(
+        client,
+        inactive_session['session_id'],
+        data=MOCK_PARTICIPATION,
+        expected_response=403,
     )
 
 
