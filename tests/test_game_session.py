@@ -74,15 +74,43 @@ def test_organize_game_session_too_many_players(games):
     ]
 
 
+def test_multiple_games_with_interest(games):
+    game1 = games[0]
+    game2 = games[1]
+    game1_participation = create_participation(
+        game1['game_id'],
+        game1['min_players'],
+    )
+    game2_participation = create_participation(
+        game2['game_id'],
+        game2['min_players'],
+        seed=game1['min_players'],
+    )
+
+    game_session = organize_game_session(
+        games,
+        game1_participation + game2_participation,
+    )
+    assert game_session[game1['game_id']]['players'] == [
+        player['user_id']
+        for player in game1_participation[:game1['max_players']]
+    ]
+    assert game_session[game2['game_id']]['players'] == [
+        player['user_id']
+        for player in game2_participation[:game2['max_players']]
+    ]
+
+
+
 def generate_interest(num_players):
     return ['Player {}'.format(i) for i in range(num_players)]
 
 
-def create_participation(game_id, num_players):
+def create_participation(game_id, num_players, seed=0):
     return [
         {
             'user_id': 'Player ID {}'.format(i),
             'name': 'Player Name {}'.format(i),
             'preference': [game_id]
-        } for i in range(num_players)
+        } for i in range(seed, seed + num_players)
     ]
