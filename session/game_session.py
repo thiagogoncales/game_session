@@ -1,25 +1,25 @@
 from collections import defaultdict
 
 
-def organize_game_session(games, participation):
+def get_game_sessions(games, participation):
     games_interest = defaultdict(list)
     for player_participation in participation:
-        preference = player_participation['preference']
+        preference = player_participation['preferences']
         if not preference:
             continue
         games_interest[preference[0]].append(player_participation['user_id'])
 
-    games_session = {}
+    game_sessions = []
     for game in games:
         game_id = game['game_id']
         interest = games_interest[game_id]
         if game_has_enough_interest(game, interest):
-            games_session[game_id] = {
-                'game_name': game['name'],
+            game_sessions.append({
+                'game_id': game_id,
                 'players': interest[:game['max_players']],
-            }
+            })
 
-    return games_session
+    return game_sessions
 
 
 def game_has_enough_interest(game, interest):

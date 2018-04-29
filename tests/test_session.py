@@ -87,6 +87,7 @@ def put_session_detail(client, session_id, data={}, expected_response=200):
     assert response.status_code == expected_response
     return response
 
+
 def get_session_detail(client, session_id, expected_response=200):
     response = client.get(
         '/session/{}/'.format(session_id),

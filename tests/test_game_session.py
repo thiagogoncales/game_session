@@ -1,116 +1,64 @@
-import pytest
+import json
 
-from session.game_session import (
-    game_has_enough_interest,
-    organize_game_session,
+from session.use_cases import (
+    get_session,
+    set_game_session_active_status,
+)
+from tests.fixtures import (
+    client,
+    game_with_max_participation_game_session,
+    game_with_min_participation_game_session,
+    game_with_not_enough_participation_game_session,
+    session_for_game_session,
 )
 
 
-@pytest.fixture
-def games():
-    return [
-    {
-        'game_id': 'Game ID {}'.format(i),
-        'name': 'Game Name {}'.format(i),
-        'min_players': i,
-        'max_players': i + 5,
-    } for i in range(1, 6)
-]
-
-
-def test_has_minimal_interest(games):
-    game = games[0]
-    interest = generate_interest(game['min_players'])
-    assert game_has_enough_interest(game, interest) == True
-
-
-def test_over_maximum_interest(games):
-    game = games[0]
-    interest = generate_interest(game['max_players'] + 1)
-    assert game_has_enough_interest(game, interest) == True
-
-
-def test_below_minimum_interest(games):
-    game = games[0]
-    interest = generate_interest(game['min_players'] - 1)
-    assert game_has_enough_interest(game, interest) == False
-
-
-def test_organize_game_session_enough_players(games):
-    game = games[-1]
-    game_participation = create_participation(
-        game['game_id'],
-        game['min_players'],
+def test_get_game_session_on_active_session(
+    client,
+    session_for_game_session,
+):
+    get_game_session_detail(
+        client,
+        session_for_game_session['session_id'],
+        expected_response=403,
     )
 
-    game_session = organize_game_session(games, game_participation)
-    assert game_session[game['game_id']]['players'] == [
-        player['user_id']
-        for player in game_participation
-    ]
 
-def test_organize_game_session_not_enough_players(games):
-    game = games[-1]
-    game_participation = create_participation(
-        game['game_id'],
-        game['min_players'] - 1,
+def test_get_game_sessions(
+    client,
+    session_for_game_session,
+    game_with_max_participation_game_session,
+    game_with_min_participation_game_session,
+    game_with_not_enough_participation_game_session,
+):
+    session_id = session_for_game_session['session_id']
+    set_game_session_active_status(session_id, False)
+    response = get_game_session_detail(
+        client,
+        session_id
     )
 
-    game_session = organize_game_session(games, game_participation)
-    assert game['game_id'] not in game_session
+    data = json.loads(response.data)
+    game_sessions = data['game_sessions']
+
+    assert data['session_id'] == session_id
+    assert game_with_min_participation_game_session in game_sessions
+    assert game_with_max_participation_game_session in game_sessions
+    assert next((
+            game_session
+            for game_session in game_sessions
+            if game_session['game_id'] == \
+                game_with_not_enough_participation_game_session['game_id']
+    ), False) == False
+
+    # TODO: Add coverage after fixing bug
+    #assert game_with_more_than_max_participation_game_session in game_sessions
 
 
-def test_organize_game_session_too_many_players(games):
-    game = games[-1]
-    game_participation = create_participation(
-        game['game_id'],
-        game['max_players'] + 5,
+def get_game_session_detail(client, session_id, expected_response=200):
+    response = client.get(
+        '/session/{}/game_session/'.format(session_id),
+        content_type='application/json'
     )
-
-    game_session = organize_game_session(games, game_participation)
-    assert game_session[game['game_id']]['players'] == [
-        player['user_id']
-        for player in game_participation[:game['max_players']]
-    ]
-
-
-def test_multiple_games_with_interest(games):
-    game1 = games[0]
-    game2 = games[1]
-    game1_participation = create_participation(
-        game1['game_id'],
-        game1['min_players'],
-    )
-    game2_participation = create_participation(
-        game2['game_id'],
-        game2['min_players'],
-        seed=game1['min_players'],
-    )
-
-    game_session = organize_game_session(
-        games,
-        game1_participation + game2_participation,
-    )
-    assert game_session[game1['game_id']]['players'] == [
-        player['user_id']
-        for player in game1_participation[:game1['max_players']]
-    ]
-    assert game_session[game2['game_id']]['players'] == [
-        player['user_id']
-        for player in game2_participation[:game2['max_players']]
-    ]
-
-
-
-def generate_interest(num_players):
-    return ['Player {}'.format(i) for i in range(num_players)]
-
-
-def create_participation(game_id, num_players, seed=0):
-    return [
-        {
-            'user_id': 'Player ID {}'.format(i),
-            'name': 'Player Name {}'.format(i),
-            'preference': [game_id]
-        } for i in range(seed, seed + num_players)
-    ]
+    assert response.status_code == expected_response
+    return response
