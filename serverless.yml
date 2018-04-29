@@ -68,12 +68,18 @@ resources:
       Properties:
         AttributeDefinitions:
           -
+            AttributeName: session_id
+            AttributeType: S
+          -
             AttributeName: game_id
             AttributeType: S
         KeySchema:
           -
-            AttributeName: game_id
+            AttributeName: session_id
             KeyType: HASH
+          -
+            AttributeName: game_id
+            KeyType: RANGE
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1

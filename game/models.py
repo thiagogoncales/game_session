@@ -13,8 +13,8 @@ from config import (
 
 
 class Game(BaseModel):
-    game_id = UnicodeAttribute(hash_key=True)
-    session_id = UnicodeAttribute()
+    session_id = UnicodeAttribute(hash_key=True)
+    game_id = UnicodeAttribute(range_key=True)
     name = UnicodeAttribute()
     min_players = NumberAttribute()
     max_players = NumberAttribute()
