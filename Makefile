@@ -9,7 +9,7 @@ test: app-test
 app-test:
 	make stop_local_dynamo
 	make start_local_dynamo
-	pipenv run pytest || true
+	pipenv run pytest $(TEST_TARGET) || true
 	make stop_local_dynamo
 
 .PHONY: deploy
