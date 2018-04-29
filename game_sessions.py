@@ -12,6 +12,7 @@ from game.use_cases import (
 from session.use_cases import (
     create_session,
     get_session,
+    update_session,
 )
 
 
@@ -23,10 +24,18 @@ def session():
     return jsonify(create_session())
 
 
+@app.route('/session/<session_id>/', methods=['GET', 'PUT'])
+def session_detail(session_id):
+    get_session_or_404(session_id)
+    if request.method == 'PUT':
+        data = request.get_json()
+        return jsonify(update_session(session_id, **data))
+    return jsonify(get_session(session_id))
+
+
 @app.route('/session/<session_id>/game/', methods=['POST'])
 def game(session_id):
-    if not get_session(session_id):
-        abort(404)
+    get_session_or_404(session_id)
 
     data = request.get_json()
 
@@ -39,3 +48,9 @@ def game(session_id):
         ))
     except SessionClosedException:
         abort(403)
+
+def get_session_or_404(session_id):
+    session = get_session(session_id)
+    if not session:
+        abort(404)
+    return session

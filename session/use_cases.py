@@ -20,3 +20,13 @@ def get_session(session_id):
         return Session.get(session_id).as_dict()
     except Session.DoesNotExist:
         return None
+
+
+def update_session(session_id, **kwargs):
+    print(kwargs)
+    session = Session(
+        session_id=session_id,
+        **kwargs
+    )
+    session.save()
+    return session.as_dict()
