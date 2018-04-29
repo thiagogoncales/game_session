@@ -3,6 +3,10 @@ from uuid import uuid4
 from session.models import Session
 
 
+class SessionClosedException(Exception):
+    pass
+
+
 def create_session(is_active=True):
     session_id = str(uuid4())
 
@@ -20,6 +24,14 @@ def get_session(session_id):
         return Session.get(session_id).as_dict()
     except Session.DoesNotExist:
         return None
+
+def get_active_session(session_id):
+    session = get_session(session_id)
+    if not session:
+        return session
+
+    if not session['is_active']:
+        raise SessionClosedException
 
 
 def update_session(session_id, **kwargs):

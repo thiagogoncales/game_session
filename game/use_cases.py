@@ -1,18 +1,11 @@
 from uuid import uuid4
 
 from game.models import Game
-
-from session.use_cases import get_session
-
-
-class SessionClosedException(Exception):
-    pass
+from session.use_cases import get_active_session
 
 
 def create_game(session_id, name, min_players, max_players):
-    session = get_session(session_id=session_id)
-    if not session['is_active']:
-        raise SessionClosedException
+    session = get_active_session(session_id=session_id)
 
     game_id = str(uuid4())
     new_game = Game(

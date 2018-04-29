@@ -17,11 +17,12 @@ from voluptuous import (
 from game.use_cases import (
     create_game,
     get_all_games_for_session,
-    SessionClosedException,
 )
+from participation.use_cases import add_participation
 from session.use_cases import (
     create_session,
     get_session,
+    SessionClosedException,
     update_session,
 )
 
@@ -73,6 +74,27 @@ def game(session_id):
 
     return jsonify(get_all_games_for_session(session_id))
 
+
+@app.route('/session/<session_id>/participation/', methods=['POST'])
+def participation(session_id):
+    get_session_or_404(session_id)
+
+    schema = Schema({
+        Required('user_id'): All(str, Length(min=1)),
+        Required('name'): All(str, Length(min=1)),
+        Required('preferences'): list,
+    })
+
+    data = validate(request.get_json(), schema)
+    try:
+        return jsonify(add_participation(
+            session_id=session_id,
+            user_id=data['user_id'],
+            name=data['name'],
+            preferences=data['preferences'],
+        ))
+    except SessionClosedException:
+        abort(403)
 
 
 def min_players_must_be_less_than_max_players(data):
