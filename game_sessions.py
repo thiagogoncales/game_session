@@ -16,6 +16,7 @@ from voluptuous import (
 
 from game.use_cases import (
     create_game,
+    get_all_games_for_session,
     SessionClosedException,
 )
 from session.use_cases import (
@@ -47,7 +48,7 @@ def session_detail(session_id):
     return jsonify(get_session(session_id))
 
 
-@app.route('/session/<session_id>/game/', methods=['POST'])
+@app.route('/session/<session_id>/game/', methods=['GET', 'POST'])
 def game(session_id):
     get_session_or_404(session_id)
 
@@ -57,17 +58,21 @@ def game(session_id):
         Required('max_players'): All(int, Range(min=1)),
     }, min_players_must_be_less_than_max_players))
 
-    data = validate(request.get_json(), schema)
+    if request.method == 'POST':
+        data = validate(request.get_json(), schema)
 
-    try:
-        return jsonify(create_game(
-            session_id=session_id,
-            name=data['name'],
-            min_players=data['min_players'],
-            max_players=data['max_players'],
-        ))
-    except SessionClosedException:
-        abort(403)
+        try:
+            return jsonify(create_game(
+                session_id=session_id,
+                name=data['name'],
+                min_players=data['min_players'],
+                max_players=data['max_players'],
+            ))
+        except SessionClosedException:
+            abort(403)
+
+    return jsonify(get_all_games_for_session(session_id))
+
 
 
 def min_players_must_be_less_than_max_players(data):
