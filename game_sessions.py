@@ -4,6 +4,11 @@ from flask import (
     jsonify,
     request,
 )
+from voluptuous import (
+    MultipleInvalid,
+    Required,
+    Schema,
+)
 
 from game.use_cases import (
     create_game,
@@ -27,8 +32,11 @@ def session():
 @app.route('/session/<session_id>/', methods=['GET', 'PUT'])
 def session_detail(session_id):
     get_session_or_404(session_id)
+    schema = Schema({
+        Required('is_active'): bool,
+    })
     if request.method == 'PUT':
-        data = request.get_json()
+        data = validate(request.get_json(), schema)
         return jsonify(update_session(session_id, **data))
     return jsonify(get_session(session_id))
 
@@ -49,8 +57,16 @@ def game(session_id):
     except SessionClosedException:
         abort(403)
 
+
 def get_session_or_404(session_id):
     session = get_session(session_id)
     if not session:
         abort(404)
     return session
+
+
+def validate(data, schema):
+    try:
+        return schema(request.get_json())
+    except MultipleInvalid:
+        abort(400)

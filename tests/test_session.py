@@ -39,6 +39,16 @@ def test_modify_non_existent_session(client):
         expected_response=404,
     )
 
+
+def test_modify_non_existent_attribute(client, active_session):
+    response = put_session_detail(
+        client,
+        active_session['session_id'],
+        data={'NOT A REAL ATTRIBUTE': False},
+        expected_response=400,
+    )
+
+
 def test_get_session(client, active_session):
     response = get_session_detail(
         client,
