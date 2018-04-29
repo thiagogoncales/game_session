@@ -6,6 +6,7 @@ plugins:
 
 custom:
   sessionTableName: 'session-table-${self:provider.stage}'
+  gameTableName: 'game-table-${self:provider.stage}'
   wsgi:
     app: game_sessions.app
     packRequirements: false
@@ -30,8 +31,10 @@ provider:
         - dynamodb:DeleteItem
       Resource:
         - { "Fn::GetAtt": ["SessionTable", "Arn" ] }
+        - { "Fn::GetAtt": ["GameTable", "Arn" ] }
   environment:
     SESSION_TABLE_NAME: ${self:custom.sessionTableName}
+    GAME_TABLE_NAME: ${self:custom.gameTableName}
 
 package:
   individually: true
@@ -60,3 +63,18 @@ resources:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
         TableName: ${self:custom.sessionTableName}
+    GameTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: game_id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: game_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.gameTableName}
