@@ -16,6 +16,7 @@ def get_game_sessions(games, participation):
         if game_has_enough_interest(game, interest):
             game_sessions.append({
                 'game_id': game_id,
+                'game_name': game['name'],
                 'players': interest[:game['max_players']],
             })
 

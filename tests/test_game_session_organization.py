@@ -46,6 +46,7 @@ def test_get_game_sessions_enough_players(games):
     game_sessions = get_game_sessions(games, game_participation)
     expected_game_session = {
         'game_id': game['game_id'],
+        'game_name': game['name'],
         'players': [player['user_id'] for player in game_participation],
     }
     assert expected_game_session in game_sessions
@@ -76,6 +77,7 @@ def test_get_game_sessions_too_many_players(games):
     game_sessions = get_game_sessions(games, game_participation)
     expected_game_session = {
         'game_id': game['game_id'],
+        'game_name': game['name'],
         'players': [
             player['user_id']
             for player in game_participation[:game['max_players']]
@@ -103,6 +105,7 @@ def test_multiple_games_with_interest(games):
     )
     expected_game_session1 = {
         'game_id': game1['game_id'],
+        'game_name': game1['name'],
         'players': [
             player['user_id']
             for player in game1_participation[:game1['max_players']]
@@ -110,6 +113,7 @@ def test_multiple_games_with_interest(games):
     }
     expected_game_session2 = {
         'game_id': game2['game_id'],
+        'game_name': game2['name'],
         'players': [
             player['user_id']
             for player in game2_participation[:game2['max_players']]

@@ -97,7 +97,7 @@ def participation(session_id):
        abort(403)
 
 
-@app.route('/session/<session_id>/ame_session/', methods=['GET'])
+@app.route('/session/<session_id>/game_session/', methods=['GET'])
 def game_session(session_id):
     get_session_or_404(session_id)
 
@@ -201,8 +201,8 @@ def slack_end_session():
 
     attachment_fields = [
         {
-            'title': gs['game_id'],
-            'value': ', '.join(gs['players']),
+            'title': gs['game_name'],
+            'value': ', '.join(['<@{}>' for player in gs['players']]),
             'short': False,
         } for gs in game_sessions['game_sessions']
     ]

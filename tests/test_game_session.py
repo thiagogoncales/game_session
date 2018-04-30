@@ -44,6 +44,7 @@ def test_get_game_session_min_participation(
 
     assert {
         'game_id': game_with_participation['game_id'],
+        'game_name': game_with_participation['name'],
         'players': [
             player['user_id']
             for player in min_participation_for_game_with_participation
@@ -69,6 +70,7 @@ def test_get_game_session_max_participation(
 
     assert {
         'game_id': game_with_participation['game_id'],
+        'game_name': game_with_participation['name'],
         'players': [
             player['user_id']
             for player in max_participation_for_game_with_participation
