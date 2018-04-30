@@ -14,6 +14,7 @@ from voluptuous import (
     Schema,
 )
 
+from game.schemas import game_schema
 from game.use_cases import (
     create_game,
     get_all_games_for_session,
@@ -55,26 +56,28 @@ def session_detail(session_id):
 def game(session_id):
     get_session_or_404(session_id)
 
-    schema = Schema(All({
-        Required('name'): All(str, Length(min=1)),
-        Required('min_players'): All(int, Range(min=1)),
-        Required('max_players'): All(int, Range(min=1)),
-    }, min_players_must_be_less_than_max_players))
-
     if request.method == 'POST':
-        data = validate(request.get_json(), schema)
+        data = validate(request.get_json(), game_schema)
 
-        try:
-            return jsonify(create_game(
-                session_id=session_id,
-                name=data['name'],
-                min_players=data['min_players'],
-                max_players=data['max_players'],
-            ))
-        except SessionClosedException:
-            abort(403)
+        return _create_game(session_id, data)
 
     return jsonify(get_all_games_for_session(session_id))
+
+
+@app.route('/slack/create_game/', methods=['POST'])
+def slack_create_game():
+    text = request.form.get('text')
+    session_id, name, min_players, max_players = text.strip().split(' ')
+    min_players = int(min_players)
+    max_players = int(max_players)
+
+    data = validate({
+        'name': name,
+        'min_players': min_players,
+        'max_players': max_players,
+    }, game_schema)
+
+    return _create_game(session_id, data)
 
 
 @app.route('/session/<session_id>/participation/', methods=['POST'])
@@ -111,12 +114,6 @@ def game_session(session_id):
         abort(403)
 
 
-def min_players_must_be_less_than_max_players(data):
-    if data['min_players'] >= data['max_players']:
-        raise Invalid('min_players must be less than max_players')
-    return data
-
-
 def get_session_or_404(session_id):
     session = get_session(session_id)
     if not session:
@@ -126,6 +123,18 @@ def get_session_or_404(session_id):
 
 def validate(data, schema):
     try:
-        return schema(request.get_json())
-    except MultipleInvalid:
+        return schema(data)
+    except MultipleInvalid as e:
         abort(400)
+
+
+def _create_game(session_id, validated_data):
+    try:
+        return jsonify(create_game(
+            session_id=session_id,
+            name=validated_data['name'],
+            min_players=validated_data['min_players'],
+            max_players=validated_data['max_players'],
+        ))
+    except SessionClosedException:
+        abort(403)
