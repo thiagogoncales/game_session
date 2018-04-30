@@ -21,6 +21,7 @@ from game.use_cases import (
 )
 from participation.schemas import participation_schema
 from participation.use_cases import add_participation
+from session.schemas import session_schema
 from session.use_cases import (
     create_session,
     get_game_session,
@@ -34,6 +35,10 @@ from session.use_cases import (
 app = Flask(__name__)
 
 
+######################################################
+##################### App routes #####################
+######################################################
+
 @app.route('/session/', methods=['POST'])
 def session():
     return jsonify(create_session())
@@ -43,13 +48,9 @@ def session():
 def session_detail(session_id):
     get_session_or_404(session_id)
 
-    schema = Schema({
-        Required('is_active'): bool,
-    })
-
     if request.method == 'PUT':
-        data = validate(request.get_json(), schema)
-        return jsonify(update_session(session_id, **data))
+        data = validate(request.get_json(), session_schema)
+        return _update_session(session_id, data)
     return jsonify(get_session(session_id))
 
 
@@ -63,22 +64,6 @@ def game(session_id):
         return _create_game(session_id, data)
 
     return jsonify(get_all_games_for_session(session_id))
-
-
-@app.route('/slack/create_game/', methods=['POST'])
-def slack_create_game():
-    text = request.form.get('text')
-    session_id, name, min_players, max_players = text.strip().split()
-    min_players = int(min_players)
-    max_players = int(max_players)
-
-    data = validate({
-        'name': name,
-        'min_players': min_players,
-        'max_players': max_players,
-    }, game_schema)
-
-    return _create_game(session_id, data)
 
 
 @app.route('/session/<session_id>/participation/', methods=['POST'])
@@ -95,8 +80,62 @@ def participation(session_id):
     return _create_participation(session_id, data)
 
 
-@app.route('/slack/join_game/', methods=['POST'])
-def slack_join_game():
+@app.route('/session/<session_id>/ame_session/', methods=['GET'])
+def game_session(session_id):
+    get_session_or_404(session_id)
+
+    try:
+        return jsonify(get_game_session(
+            session_id=session_id,
+        ))
+    except SessionOpenException:
+        abort(403)
+
+
+######################################################
+#################### Slack routes ####################
+######################################################
+
+
+@app.route('/slack/create_session/', methods=['POST'])
+def slack_create_session():
+    return jsonify(create_session())
+
+
+@app.route('/slack/add_game/', methods=['POST'])
+def slack_add_game():
+    text = request.form.get('text')
+    session_id, name, min_players, max_players = text.strip().split()
+    min_players = int(min_players)
+    max_players = int(max_players)
+
+    data = validate({
+        'name': name,
+        'min_players': min_players,
+        'max_players': max_players,
+    }, game_schema)
+
+    return _create_game(session_id, data)
+
+
+@app.route('/slack/end_session/', methods=['POST'])
+def slack_end_session():
+    text = request.form.get('text')
+    session_id = text.strip()
+
+    data = validate({
+        'is_active': False,
+    }, session_schema)
+
+    _update_session(session_id, data)
+
+    return jsonify(get_game_session(
+        session_id=session_id,
+    ))
+
+
+@app.route('/slack/join_session/', methods=['POST'])
+def slack_join_session():
     text = request.form.get('text')
     session_id, *preferences = text.strip().split()
 
@@ -109,28 +148,9 @@ def slack_join_game():
     return _create_participation(session_id, data)
 
 
-def _create_participation(session_id, validated_data):
-    try:
-        return jsonify(add_participation(
-            session_id=session_id,
-            user_id=validated_data['user_id'],
-            name=validated_data['name'],
-            preferences=validated_data['preferences'],
-        ))
-    except SessionClosedException:
-        abort(403)
-
-
-@app.route('/session/<session_id>/game_session/', methods=['GET'])
-def game_session(session_id):
-    get_session_or_404(session_id)
-
-    try:
-        return jsonify(get_game_session(
-            session_id=session_id,
-        ))
-    except SessionOpenException:
-        abort(403)
+######################################################
+###################### Helpers #######################
+######################################################
 
 
 def get_session_or_404(session_id):
@@ -157,3 +177,19 @@ def _create_game(session_id, validated_data):
         ))
     except SessionClosedException:
         abort(403)
+
+
+def _create_participation(session_id, validated_data):
+    try:
+        return jsonify(add_participation(
+            session_id=session_id,
+            user_id=validated_data['user_id'],
+            name=validated_data['name'],
+            preferences=validated_data['preferences'],
+        ))
+    except SessionClosedException:
+       abort(403)
+
+
+def _update_session(session_id, validated_data):
+    return jsonify(update_session(session_id, **validated_data))
