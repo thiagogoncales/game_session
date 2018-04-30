@@ -50,7 +50,7 @@ def session_detail(session_id):
 
     if request.method == 'PUT':
         data = validate(request.get_json(), session_schema)
-        return _update_session(session_id, data)
+        return jsonify(update_session(session_id, **data))
     return jsonify(get_session(session_id))
 
 
@@ -61,7 +61,15 @@ def game(session_id):
     if request.method == 'POST':
         data = validate(request.get_json(), game_schema)
 
-        return _create_game(session_id, data)
+        try:
+            return jsonify(create_game(
+                session_id=session_id,
+                name=data['name'],
+                min_players=data['min_players'],
+                max_players=data['max_players'],
+            ))
+        except SessionClosedException:
+            abort(403)
 
     return jsonify(get_all_games_for_session(session_id))
 
@@ -77,7 +85,16 @@ def participation(session_id):
     })
 
     data = validate(request.get_json(), schema)
-    return _create_participation(session_id, data)
+
+    try:
+        return jsonify(add_participation(
+            session_id=session_id,
+            user_id=data['user_id'],
+            name=data['name'],
+            preferences=data['preferences'],
+        ))
+    except SessionClosedException:
+       abort(403)
 
 
 @app.route('/session/<session_id>/ame_session/', methods=['GET'])
@@ -99,7 +116,10 @@ def game_session(session_id):
 
 @app.route('/slack/create_session/', methods=['POST'])
 def slack_create_session():
-    return jsonify(create_session())
+    new_session = create_session()
+    return create_slack_message(
+        'New Session created {}'.format(new_session['session_id']),
+    )
 
 
 @app.route('/slack/add_game/', methods=['POST'])
@@ -115,23 +135,23 @@ def slack_add_game():
         'max_players': max_players,
     }, game_schema)
 
-    return _create_game(session_id, data)
+    try:
+        new_game = create_game(
+            session_id=session_id,
+            name=data['name'],
+            min_players=data['min_players'],
+            max_players=data['max_players'],
+        )
+    except SessionClosedException:
+       abort(403)
 
-
-@app.route('/slack/end_session/', methods=['POST'])
-def slack_end_session():
-    text = request.form.get('text')
-    session_id = text.strip()
-
-    data = validate({
-        'is_active': False,
-    }, session_schema)
-
-    _update_session(session_id, data)
-
-    return jsonify(get_game_session(
-        session_id=session_id,
-    ))
+    return create_slack_message(
+        'Game {name} ({game_id}) added to Session {session_id}'.format(
+            name=new_game['name'],
+            game_id=new_game['game_id'],
+            session_id=session_id,
+        ),
+    )
 
 
 @app.route('/slack/join_session/', methods=['POST'])
@@ -145,7 +165,62 @@ def slack_join_session():
         'preferences': preferences,
     }, participation_schema)
 
-    return _create_participation(session_id, data)
+    try:
+        participation = add_participation(
+            session_id=session_id,
+            user_id=data['user_id'],
+            name=data['name'],
+            preferences=data['preferences'],
+        )
+    except SessionClosedException:
+       abort(403)
+
+    return create_slack_message(
+        'Joined Session {session_id} with preferences ({preferences})'.format(
+            session_id=session_id,
+            preferences=', '.join(participation['preferences']),
+        ),
+        in_channel=False,
+    )
+
+
+@app.route('/slack/end_session/', methods=['POST'])
+def slack_end_session():
+    text = request.form.get('text')
+    session_id = text.strip()
+
+    data = validate({
+        'is_active': False,
+    }, session_schema)
+
+    update_session(session_id, **data)
+
+    game_sessions = get_game_session(
+        session_id=session_id,
+    )
+
+    attachment_fields = [
+        {
+            'title': gs['game_id'],
+            'value': ', '.join(gs['players']),
+            'short': False,
+        } for gs in game_sessions['game_sessions']
+    ]
+
+    attachment = {
+        'fallback': 'These are the games that have enough interest',
+        'title': 'Games',
+        'text': 'These are the games with enough interest',
+        'fields': attachment_fields,
+    }
+
+
+    return create_slack_message(
+        'Session {session_id} ended!'.format(
+            session_id=session_id,
+        ),
+        attachment=attachment,
+    )
 
 
 ######################################################
@@ -167,29 +242,9 @@ def validate(data, schema):
         abort(400)
 
 
-def _create_game(session_id, validated_data):
-    try:
-        return jsonify(create_game(
-            session_id=session_id,
-            name=validated_data['name'],
-            min_players=validated_data['min_players'],
-            max_players=validated_data['max_players'],
-        ))
-    except SessionClosedException:
-        abort(403)
-
-
-def _create_participation(session_id, validated_data):
-    try:
-        return jsonify(add_participation(
-            session_id=session_id,
-            user_id=validated_data['user_id'],
-            name=validated_data['name'],
-            preferences=validated_data['preferences'],
-        ))
-    except SessionClosedException:
-       abort(403)
-
-
-def _update_session(session_id, validated_data):
-    return jsonify(update_session(session_id, **validated_data))
+def create_slack_message(message, in_channel=True, attachment={}):
+    return jsonify({
+        'response_type': 'in_channel' if in_channel else 'ephemeral',
+        'text': message,
+        'attachments': [attachment],
+    })
