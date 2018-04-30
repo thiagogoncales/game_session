@@ -19,6 +19,7 @@ from game.use_cases import (
     create_game,
     get_all_games_for_session,
 )
+from participation.schemas import participation_schema
 from participation.use_cases import add_participation
 from session.use_cases import (
     create_session,
@@ -67,7 +68,7 @@ def game(session_id):
 @app.route('/slack/create_game/', methods=['POST'])
 def slack_create_game():
     text = request.form.get('text')
-    session_id, name, min_players, max_players = text.strip().split(' ')
+    session_id, name, min_players, max_players = text.strip().split()
     min_players = int(min_players)
     max_players = int(max_players)
 
@@ -91,12 +92,30 @@ def participation(session_id):
     })
 
     data = validate(request.get_json(), schema)
+    return _create_participation(session_id, data)
+
+
+@app.route('/slack/join_game/', methods=['POST'])
+def slack_join_game():
+    text = request.form.get('text')
+    session_id, *preferences = text.strip().split()
+
+    data = validate({
+        'user_id': request.form['user_id'],
+        'name': request.form['user_name'],
+        'preferences': preferences,
+    }, participation_schema)
+
+    return _create_participation(session_id, data)
+
+
+def _create_participation(session_id, validated_data):
     try:
         return jsonify(add_participation(
             session_id=session_id,
-            user_id=data['user_id'],
-            name=data['name'],
-            preferences=data['preferences'],
+            user_id=validated_data['user_id'],
+            name=validated_data['name'],
+            preferences=validated_data['preferences'],
         ))
     except SessionClosedException:
         abort(403)
