@@ -5,54 +5,121 @@ from session.use_cases import (
     set_game_session_active_status,
 )
 from tests.fixtures import (
+    active_session,
     client,
-    game_with_max_participation_game_session,
-    game_with_min_participation_game_session,
-    game_with_not_enough_participation_game_session,
-    session_for_game_session,
+    game_with_participation,
+    min_participation_for_game_with_participation,
+    max_participation_for_game_with_participation,
+    less_than_min_participation_for_game_with_participation,
+    more_than_max_participation_for_game_with_participation,
 )
 
 
 def test_get_game_session_on_active_session(
     client,
-    session_for_game_session,
+    active_session,
 ):
     get_game_session_detail(
         client,
-        session_for_game_session['session_id'],
+        active_session['session_id'],
         expected_response=403,
     )
 
 
-def test_get_game_sessions(
+def test_get_game_session_min_participation(
     client,
-    session_for_game_session,
-    game_with_max_participation_game_session,
-    game_with_min_participation_game_session,
-    game_with_not_enough_participation_game_session,
+    active_session,
+    game_with_participation,
+    min_participation_for_game_with_participation,
 ):
-    session_id = session_for_game_session['session_id']
+    session_id = active_session['session_id']
     set_game_session_active_status(session_id, False)
     response = get_game_session_detail(
         client,
-        session_id
+        session_id,
     )
 
     data = json.loads(response.data)
     game_sessions = data['game_sessions']
 
-    assert data['session_id'] == session_id
-    assert game_with_min_participation_game_session in game_sessions
-    assert game_with_max_participation_game_session in game_sessions
+    assert {
+        'game_id': game_with_participation['game_id'],
+        'players': [
+            player['user_id']
+            for player in min_participation_for_game_with_participation
+        ],
+    } in game_sessions
+
+
+def test_get_game_session_max_participation(
+    client,
+    active_session,
+    game_with_participation,
+    max_participation_for_game_with_participation,
+):
+    session_id = active_session['session_id']
+    set_game_session_active_status(session_id, False)
+    response = get_game_session_detail(
+        client,
+        session_id,
+    )
+
+    data = json.loads(response.data)
+    game_sessions = data['game_sessions']
+
+    assert {
+        'game_id': game_with_participation['game_id'],
+        'players': [
+            player['user_id']
+            for player in max_participation_for_game_with_participation
+        ],
+    } in game_sessions
+
+
+def test_get_game_session_less_than_min_participation(
+    client,
+    active_session,
+    game_with_participation,
+    less_than_min_participation_for_game_with_participation,
+):
+    session_id = active_session['session_id']
+    set_game_session_active_status(session_id, False)
+    response = get_game_session_detail(
+        client,
+        session_id,
+    )
+
+    data = json.loads(response.data)
+    game_sessions = data['game_sessions']
+
     assert next((
-            game_session
-            for game_session in game_sessions
-            if game_session['game_id'] == \
-                game_with_not_enough_participation_game_session['game_id']
+        game_session
+        for game_session in game_sessions
+        if game_session['game_id'] == game_with_participation['game_id']
     ), False) == False
 
-    # TODO: Add coverage after fixing bug
-    #assert game_with_more_than_max_participation_game_session in game_sessions
+
+def test_get_game_session_more_than_max_participation(
+    client,
+    active_session,
+    game_with_participation,
+    more_than_max_participation_for_game_with_participation,
+):
+    session_id = active_session['session_id']
+    set_game_session_active_status(session_id, False)
+    response = get_game_session_detail(
+        client,
+        session_id,
+    )
+
+    data = json.loads(response.data)
+    game_sessions = data['game_sessions']
+
+    assert len(next((
+        game_session
+        for game_session in game_sessions
+        if game_session['game_id'] == game_with_participation['game_id']
+    ))['players']) == game_with_participation['max_players']
 
 
 def get_game_session_detail(client, session_id, expected_response=200):

@@ -37,105 +37,74 @@ def games_for_active_session(active_session):
 
 
 @pytest.fixture
-def session_for_game_session():
-    return create_session(is_active=True)
-
-
-@pytest.fixture
-def game_with_min_participation_game_session(session_for_game_session):
-    session_id = session_for_game_session['session_id']
+def game_with_participation(active_session):
+    session_id = active_session['session_id']
     min_players = 5
     max_players = min_players + 5
-    game_name = 'game_with_min_participation'
+    game_name = 'game_with_participation'
 
-    return _get_game_session(
-        session_id,
-        game_name,
-        min_players,
-        max_players,
-        min_players,
-    )
-
-
-@pytest.fixture
-def game_with_max_participation_game_session(
-    session_for_game_session,
-):
-    session_id = session_for_game_session['session_id']
-    min_players = 5
-    max_players = min_players + 5
-    game_name = 'game_with_max_participation'
-
-    return _get_game_session(
-        session_id,
-        game_name,
-        min_players,
-        max_players,
-        max_players,
-    )
-
-
-@pytest.fixture
-def game_with_not_enough_participation_game_session(session_for_game_session):
-    session_id = session_for_game_session['session_id']
-    min_players = 5
-    max_players = min_players + 5
-    game_name = 'game_with_not_enough_participation'
-
-    return _get_game_session(
-        session_id,
-        game_name,
-        min_players,
-        max_players,
-        min_players - 1,
-    )
-
-    return _get_game_session(game, [])
-
-
-@pytest.fixture
-def game_with_more_than_max_participation_game_session(
-    session_for_game_session,
-):
-    session_id = session_for_game_session['session_id']
-    min_players = 5
-    max_players = min_players + 5
-    game_name = 'game_with_more_than_max_participation'
-
-    return _get_game_session(
-        session_id,
-        game_name,
-        min_players,
-        max_players,
-        max_players + 1,
-    )
-
-
-def _get_game_session(
-    session_id,
-    game_name,
-    min_players,
-    max_players,
-    number_of_interested_players,
-):
-    game = create_game(
+    return create_game(
         session_id,
         name=game_name,
         min_players=min_players,
         max_players=max_players,
     )
 
-    participation = [
+
+@pytest.fixture
+def min_participation_for_game_with_participation(
+    active_session,
+    game_with_participation,
+):
+    return _add_participation_for_game(
+        active_session,
+        game_with_participation,
+        game_with_participation['min_players'],
+    )
+
+
+@pytest.fixture
+def max_participation_for_game_with_participation(
+    active_session,
+    game_with_participation,
+):
+    return _add_participation_for_game(
+        active_session,
+        game_with_participation,
+        game_with_participation['max_players'],
+    )
+
+@pytest.fixture
+def less_than_min_participation_for_game_with_participation(
+    active_session,
+    game_with_participation,
+):
+    return _add_participation_for_game(
+        active_session,
+        game_with_participation,
+        game_with_participation['min_players'] - 1,
+    )
+
+
+@pytest.fixture
+def more_than_max_participation_for_game_with_participation(
+    active_session,
+    game_with_participation,
+):
+    return _add_participation_for_game(
+        active_session,
+        game_with_participation,
+        game_with_participation['max_players'] + 1,
+    )
+
+def _add_participation_for_game(session, game, number_of_interested_players):
+    game_name = game['name']
+    return [
         add_participation(
-            session_id,
+            session['session_id'],
             'user_for_game_{}_{}'.format(game_name, i),
             'Player for game {} #{}'.format(game_name, i),
             [game['game_id']],
         )
         for i in range(number_of_interested_players)
     ]
-
-    return {
-        'game_id': game['game_id'],
-        'players': [player['user_id'] for player in participation],
-    }
