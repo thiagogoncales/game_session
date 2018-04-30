@@ -202,7 +202,10 @@ def slack_end_session():
     attachment_fields = [
         {
             'title': gs['game_name'],
-            'value': ', '.join(['<@{}>' for player in gs['players']]),
+            'value': ', '.join([
+                '<@{}>'.format(player)
+                for player in gs['players']
+            ]),
             'short': False,
         } for gs in game_sessions['game_sessions']
     ]
